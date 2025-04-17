@@ -6,6 +6,7 @@ import externalGlobals from "rollup-plugin-external-globals";
 
 export default defineConfig({
 	// takes no effect
+  base: '',
 	build: {
 		rollupOptions: {
       input: ['gridmap-viewer.html','mesh-library-editor.html','model-editor.html'],
