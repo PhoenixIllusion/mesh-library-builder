@@ -4,7 +4,7 @@ name: Deploy Examples content to Pages
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: ["gh-pages"]
+    branches: ["github-pages"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -37,7 +37,7 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - run: npm run git-pages
+    - run: sh build-git-pages.sh
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
