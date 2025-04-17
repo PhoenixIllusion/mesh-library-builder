@@ -1,0 +1,17 @@
+canvas.mesh-preview {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+
+  &.inUse {
+    opacity: 0.8;
+    background-color: rgba(180, 60, 60, 0.6);
+  }
+
+  &.dragging {
+    opacity: 0.8;
+    background-color: rgba(255, 255, 255, 0.4);
+  }
+
+  &.activeModel {
+    border-color: gold;
+  }
+}

@@ -1,0 +1,17 @@
+.gridmap {
+  table.transform {
+    font-family: monospace;
+
+    &,
+    td {
+      padding: 0.1em;
+      border: 1px solid rgba(255, 255, 255, 0.3)
+    }
+
+    td {
+      min-width: 2em;
+      padding-right: 0.4em;
+      text-align: right;
+    }
+  }
+}

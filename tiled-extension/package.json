@@ -1,0 +1,16 @@
+{
+  "name": "godot-gridmap",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "esbuild ./src/godot-gridmap.mts --bundle --minify-syntax --minify-identifiers --target=es2020 --outfile=./dist/tiled-godot-gridmap.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "esbuild": "0.25.2",
+    "@mapeditor/tiled-api": "1.11.0",
+    "typescript": "5.8.3"
+  }
+}

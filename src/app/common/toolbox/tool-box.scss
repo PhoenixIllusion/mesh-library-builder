@@ -1,0 +1,14 @@
+.tool-box {
+  background: #555;
+  flex: 1;
+  height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+
+  .contents {
+    height: 0;
+    flex: 1;
+    overflow-y: auto;
+  }
+}
