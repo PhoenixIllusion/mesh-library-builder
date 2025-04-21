@@ -123,10 +123,10 @@ export async function createTsxImage(mapEntry: MapEntry): Promise<{ name: string
   canvas.width = width * (TILE_WIDTH + TILE_SPACING);
   canvas.height = height * (TILE_HEIGHT + TILE_SPACING);
   const ctx = canvas.getContext('2d')!;
+  let index = 0;
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++) {
-      const slot: `${number}-${number}` = `${y}-${x}`;
-      const model = data[slot];
+      const model = data[index++];
       if (model) {
         const mesh = await DBMeshes.getMeshByName(model);
         const blob = mesh?.icon?.data;

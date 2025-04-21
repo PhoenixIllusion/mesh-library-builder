@@ -19,13 +19,12 @@ interface Session {
   activeTab: string;
 }
 
-type MapKey = `${number}-${number}`;
 export interface MapEntry {
   guid: string;
   name: string;
   width: number;
   height: number;
-  data: Record<MapKey, string>;
+  data: Array<string|null|undefined>;
 }
 
 export interface TextureEntry {
@@ -44,6 +43,7 @@ export interface MeshEntry {
   icon: PreviewEntry;
   directory: string;
   name: string;
+  offset: [number,number,number]
 }
 
 export interface CollisionEntry {
@@ -121,7 +121,7 @@ export class DBMap {
       name: name || guid,
       width,
       height,
-      data: {}
+      data: []
     }
     const db = await _db;
     db.put('maps', map)
@@ -132,19 +132,13 @@ export class DBMap {
     const result = this.clone(map);
     result.width = width;
     result.height = height;
-    const keys = Array.from(Object.keys(result.data));
-    keys.forEach(k => {
-      const [y, x] = k.split('-').map(s => parseInt(s, 10));
-      if (y >= height || x >= width) {
-        delete result.data[`${y}-${x}`];
-      }
-    })
+    result.data = result.data.slice(0, width * height);
     return result;
   }
 
   static clone(map: MapEntry): MapEntry {
     const result = Object.assign({}, map);
-    result.data = Object.assign({}, map.data);
+    result.data = [... map.data];
     return result;
   }
 

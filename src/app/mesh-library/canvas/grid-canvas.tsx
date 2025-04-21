@@ -13,7 +13,7 @@ export namespace GridCanvas {
   export interface Data {
     scene: () => Scene | null;
     gridHelper: GridHelper | null;
-    gridItems: Map<string, Object3D>;
+    gridItems: Object3D[];
   }
 }
 
@@ -28,7 +28,7 @@ export default defineComponent({
     const data: GridCanvas.Data = {
       scene: () => accessor.scene.value,
       gridHelper: null,
-      gridItems: new Map()
+      gridItems: []
     }
     watch([map.data, accessor.scene], ([newMap, newScene]) => {
       if (newMap && newScene) {

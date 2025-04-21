@@ -1,5 +1,5 @@
 import { ImageBitmapLoader, LoadingManager } from "three";
-import { DBMeshes } from "../services/db";
+import { DBMeshes, MeshEntry } from "../services/db";
 import { GLTF, GLTFLoader } from "three/examples/jsm/Addons.js";
 
 const gltfLoader = new GLTFLoader();
@@ -32,11 +32,18 @@ gltfLoader.register(parser => {
 
 const models: Map<string, GLTF> = new Map();
 
-async function loadModelWithBlob(key: string, dir: string, blob: Blob): Promise<GLTF> {
+async function loadModelWithBlob(mesh: MeshEntry): Promise<GLTF> {
+  const blob = mesh.gltf;
+  const key = mesh.name;
+  const dir = mesh.directory;
   const gltf = await gltfLoader.parseAsync(await blob.arrayBuffer(), dir + '/');
   models.set(key, gltf);
   gltf?.scene?.name && (gltf.scene.name = key);
   return gltf;
+}
+
+export function invalidateDBModel(path: string) {
+  models.delete(path);
 }
 
 export async function loadDBModel(path: string) {
@@ -46,7 +53,7 @@ export async function loadDBModel(path: string) {
   }
   const mesh = await DBMeshes.getMeshByName(path);
   if (mesh) {
-    return loadModelWithBlob(mesh.name, mesh.directory, mesh.gltf);
+    return loadModelWithBlob(mesh);
   }
   return null;
 }

@@ -65,9 +65,8 @@ async function renderModel(data: GridMapViewer.Data, model: GridMap[], showColli
       const cells = parseGridMapCellValues(value.data);
       if (meshLib)
         for (const cell of cells) {
-          const x = cell.item % meshLib.width;
-          const y = Math.floor(cell.item / meshLib.height);
-          const item = meshLib.data[`${y}-${x}`];
+          const index = cell.item;
+          const item = meshLib.data[index];
           if (item) {
             const model = (await loadDBModel(item))?.scene?.clone();
             if (model) {

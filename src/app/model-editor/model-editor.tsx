@@ -5,6 +5,7 @@ import ToolBox from '../common/toolbox/tool-box';
 import '../app.scss';
 import ActiveModel from './canvas/active-model';
 import CollisionPanel from './collision/collision-panel';
+import EditPositionOffset from './edit/edit-position-offset';
 
 export default defineComponent({
   setup() {
@@ -19,6 +20,7 @@ export default defineComponent({
         </div>
         <div class="right">
           <CollisionPanel></CollisionPanel>
+          <EditPositionOffset></EditPositionOffset>
           <ToolBoxMenu></ToolBoxMenu>
           <ToolBox></ToolBox>
         </div>

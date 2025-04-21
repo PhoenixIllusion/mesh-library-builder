@@ -1,8 +1,8 @@
 import { defineComponent, PropType, watch } from "vue";
 import { injectActiveModel } from "../../common/services/provider-active-model";
-import { BatchedMesh, BufferGeometry, Camera, Mesh, Object3D, Scene } from "three";
+import { BatchedMesh, BufferGeometry, Camera, GridHelper, Mesh, Object3D, Scene } from "three";
 import ThreeCanvas, { createCamera, createScene } from "../../common/three-canvas";
-import { MapEntry } from "../../common/services/db";
+import { DBMeshes, MapEntry } from "../../common/services/db";
 
 import './active-model.scss';
 import { loadDBModel } from "../../common/loader/db-model-loader";
@@ -30,22 +30,35 @@ BatchedMesh.prototype.raycast = acceleratedRaycast;
 export namespace ActiveModel {
   export interface Data {
     scene: () => Scene | null;
+    root: Object3D;
     obj: Object3D | null;
-    collision: Object3D | null;
+    collision: Object3D;
   }
 }
 
 
 async function renderModel(data: ActiveModel.Data, model: string | null) {
+  if(data.scene() && !data.scene()?.getObjectByName('grid-helper')) {
+    const grid = new GridHelper();
+    grid.name = 'grid-helper';
+    grid.position.set(0.5,0,0.5);
+    data.scene()?.add(grid);
+  }
+  if(!data.root.parent) {
+    data.scene()?.add(data.root);
+  }
   if (data.obj) {
-    data.scene()?.remove(data.obj)
+    data.root.remove(data.obj)
   }
   if (model) {
     const obj = await loadDBModel(model);
     if (obj?.scene) {
+      DBMeshes.getMeshByName(model).then(db => {
+        data.root.position.set(... db?.offset||[0,0,0])
+      })
       data.obj = obj.scene;
       disableMetalness(data.obj);
-      data.scene()?.add(data.obj);
+      data.root.add(data.obj);
     }
   }
 }
@@ -71,10 +84,13 @@ export default defineComponent({
     const accessorScene = createScene();
     const accessorCamera = createCamera();
 
+    const root = new Object3D();
+    const collision = new Object3D();
+    root.add(collision);  
     const data: ActiveModel.Data = {
       scene() { return accessorScene.scene.value },
       obj: null,
-      collision: null
+      collision, root
     }
 
     watch([activeModel, accessorScene.scene], ([newModel, newScene]) => {
