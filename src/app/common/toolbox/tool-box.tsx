@@ -1,4 +1,4 @@
-import { computed, defineComponent, ref, shallowRef, watch } from "vue";
+import { computed, defineComponent, shallowRef, watch } from "vue";
 
 
 import MeshPreview from './preview/mesh-previews';
@@ -8,34 +8,29 @@ import './tool-box.scss';
 import { Tabs, TabList, Tab, ProgressSpinner } from "primevue";
 import { DBMeshes, DBVariants, MeshEntry, VariantEntry } from "../services/db";
 
-
-declare module 'primevue' {
-  interface TabsProps {
-    'onUpdate:value': (value: string) => void;
-  }
-}
-
 export default defineComponent({
   setup() {
-    const { dir } = injectDBProvider()!;
+    const { dir, variants } = injectDBProvider()!;
 
-    const meshes = shallowRef<MeshEntry[]>([]);
-    const variants = shallowRef<VariantEntry[]>([]);
-    watch(dir.active, (newV) => {
+    const meshList = shallowRef<MeshEntry[]>([]);
+    const variantList = shallowRef<VariantEntry[]>([]);
+    watch([dir.active, variants.active], ([newV]) => {
       DBVariants.getByDirectory(newV).then(res => {
-        variants.value = res;
+        variantList.value = res;
       })
-      if(newV)
-      DBMeshes.getDirectory(newV).then(res => {
-        meshes.value = res;
-      })
+      if(newV) {
+        meshList.value = [];
+        DBMeshes.getDirectory(newV).then(res => {
+          meshList.value = res;
+        })
+      }
     })
 
     const dirContent = computed(() => {
       const dirContent: [MeshEntry, VariantEntry|null][] = [];
-      (meshes.value || []).forEach(m => {
+      (meshList.value || []).forEach(m => {
         dirContent!.push([m, null])
-        variants.value.filter(v => v.mesh == m.name).forEach(v => {
+        variantList.value.filter(v => v.mesh == m.name).forEach(v => {
           dirContent!.push([m, v])
         })
       })

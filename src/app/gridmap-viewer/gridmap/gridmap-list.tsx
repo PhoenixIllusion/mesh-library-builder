@@ -3,11 +3,6 @@ import { defineComponent } from "vue";
 import { F12, GridMap, injectGridMapProvider } from "../../common/services/provider-gridmap";
 import { injectDBProvider } from "../../common/services/provider-db";
 
-declare module 'primevue' {
-  interface SelectProps {
-    'onUpdate:modelValue': (value: string) => void;
-  }
-}
 import './gridmap-list.scss';
 
 function transformMatrix(m: F12) {

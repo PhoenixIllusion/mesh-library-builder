@@ -1,12 +1,14 @@
-import { Column, DataTable, DataTableCellEditCompleteEvent, DataTableEditingRows, DataTableExpandedRows, DataTableRowEditSaveEvent, InputText } from "primevue";
-import { defineComponent, ref, toRaw } from "vue";
+import { Column, DataTable, DataTableExpandedRows, DataTableRowEditSaveEvent, InputText } from "primevue";
+import { defineComponent, ref, toRaw, watch } from "vue";
 import { injectDBProvider } from "../../../common/services/provider-db";
 import { MaterialOverride, VariantEntry } from "../../../common/services/db";
 import MaterialPreview from "./material-preview";
 import MaterialEditor from "./material-editor";
+import { injectActiveModel } from "../../../common/services/provider-active-model";
 
 export default defineComponent({
   setup() {
+    const { activeModel } = injectActiveModel()!;
     const { variants } = injectDBProvider()!;
 
     const expandedRows = ref<DataTableExpandedRows>({});
@@ -14,6 +16,10 @@ export default defineComponent({
 
     const editingRows = ref<any[]>([]);
     const setEditingRows = (rows: any[]) => editingRows.value = rows;
+
+    watch(variants.active, () => {
+      variants.loadList(activeModel.value);
+    })
 
     return { variants, expandedRows, setExpandedRows, editingRows, setEditingRows };
   },

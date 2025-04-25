@@ -1,4 +1,4 @@
-import { DBMeshes, MapEntry } from "../services/db";
+import { MapEntry } from "../services/db";
 
 import type { TiledTileset, TiledMapOrthogonal, TiledLayerAbstract, TiledLayerType } from 'tiled-types'
 import { Dimension, renderPreviewImage, renderVariant } from "../util/render-preview";

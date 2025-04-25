@@ -3,16 +3,6 @@ import { DBProvider, injectDBProvider } from "../../../common/services/provider-
 import { MapMenu } from "../map-menu-bar";
 import { Dialog, InputText, InputNumber, Button } from "primevue";
 
-declare module 'primevue' {
-  interface InputTextProps {
-    'onUpdate:modelValue': (value: string)=>void;
-  }
-  interface InputNumberProps {
-    'onUpdate:modelValue': (value: number)=>void;
-  }
-}
-
-
 function getBool(v: Ref<boolean,boolean>|boolean): boolean {
   return (typeof v == 'boolean') ? v : v.value;
 }

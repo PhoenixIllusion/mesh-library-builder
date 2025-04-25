@@ -6,11 +6,6 @@ import GridmapViewer from './canvas/gridmap-viewer';
 import { Checkbox } from 'primevue';
 import { makeVisibility } from '../common/dialog/visibility';
 
-declare module 'primevue' {
-  interface CheckboxProps {
-    'onUpdate:modelValue': (value: boolean) => void;
-  }
-}
 export default defineComponent({
   setup() {
     const collision = makeVisibility();

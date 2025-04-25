@@ -1,7 +1,6 @@
-import { ImageBitmapLoader, LoadingManager, Material, Mesh, MeshStandardMaterial, Object3D, Source, Texture } from "three";
-import { DBMeshes, DBTexture, DBVariants, MaterialOverride, MaterialOverrideBase, MaterialOverrideNormal, MeshEntry, VariantEntry } from "../services/db";
+import { ImageBitmapLoader, LoadingManager, Material, Mesh, MeshStandardMaterial, Object3D, Source, Color } from "three";
+import { DBMeshes, DBTexture, DBVariants, MaterialOverride, MaterialOverrideBase, MeshEntry, VariantEntry } from "../services/db";
 import { GLTF, GLTFLoader } from "three/examples/jsm/Addons.js";
-import Color4 from "three/src/renderers/common/Color4.js";
 
 const gltfLoader = new GLTFLoader();
 
@@ -142,7 +141,8 @@ async function addVariantData(gltf: GLTF, variant: VariantEntry): Promise<{ scen
               })())
             }
             if('color' in v) {
-              m.color = new Color4(... v.color);
+              const [r,g,b] = v.color;
+              m.color = new Color(r,g,b);
               m.needsUpdate = true;
             }
             cache.set(mat.name, m);

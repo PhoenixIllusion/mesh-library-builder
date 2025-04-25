@@ -31,7 +31,7 @@ export namespace ActiveModel {
   export interface Data {
     scene: () => Scene | null;
     root: Object3D;
-    obj: Object3D | null;
+    obj: Object3D;
     collision: Object3D;
   }
 }
@@ -47,18 +47,17 @@ async function renderModel(data: ActiveModel.Data, variantId: string|null, model
   if(!data.root.parent) {
     data.scene()?.add(data.root);
   }
-  if (data.obj) {
-    data.root.remove(data.obj)
-  }
+  const obj = [... (data.obj.children||[])]
+  data.obj.remove(... obj);
   if (model) {
     const obj = await loadDBModel(model, variantId);
     if (obj?.scene) {
       DBMeshes.getMeshByName(model).then(db => {
         data.root.position.set(... db?.offset||[0,0,0])
       })
-      data.obj = obj.scene;
-      disableMetalness(data.obj);
-      data.root.add(data.obj);
+      const entry = obj.scene.clone();
+      data.obj.add(entry);
+      disableMetalness(entry);
     }
   }
 }
@@ -86,10 +85,12 @@ export default defineComponent({
 
     const root = new Object3D();
     const collisionNode = new Object3D();
+    const obj = new Object3D();
     root.add(collisionNode);  
+    root.add(obj);  
     const data: ActiveModel.Data = {
       scene() { return accessorScene.scene.value },
-      obj: null,
+      obj,
       collision: collisionNode, root
     }
 

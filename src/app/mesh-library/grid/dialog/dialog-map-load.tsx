@@ -4,13 +4,6 @@ import { ref } from "vue";
 import { MapMenu } from "../../grid/map-menu-bar";
 import { Dialog, ProgressSpinner, Listbox, Button } from "primevue";
 
-
-declare module 'primevue' {
-  interface ListboxProps {
-    'onUpdate:modelValue': (value: string)=>void;
-  }
-}
-
 export function loadMapDialog(context: MapMenu.Data) {
   const selected = ref<string|null>()
   const { mapList } = injectDBProvider()!;

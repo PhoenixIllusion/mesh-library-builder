@@ -13,12 +13,6 @@ import { useEventBus, UseEventBusReturn } from "@vueuse/core";
 import { downloadFile } from "../../common/util/download-file";
 import { createTsxImage, createTsxFileXML } from "../../common/tiled/tmx-encoder";
 
-declare module '@primevue/core' {
-  interface PrimeIconsOptions {
-    readonly FILE_PLUS: string;
-  }
-}
-
 export type MeshLibMenuSignal = 'export_tmx';
 export type MenuLibMenuBus = UseEventBusReturn<"export_tmx", string | null>;
 const EVENT_BUS_MESH_LIB_MENU = Symbol("EVENT_BUS_MESH_LIB_MENU");

@@ -9,17 +9,6 @@ import { CollisionNode, validateCollisionNodeRecursive } from "../../common/serv
 import type { TreeSelectionKeys } from "primevue/tree";
 import { Tree, Menubar, Panel } from "primevue";
 
-declare module '@primevue/core' {
-  interface PrimeIconsOptions {
-    readonly CLIPBOARD: string;
-  }
-}
-declare module 'primevue' {
-  interface TreeProps {
-    'onUpdate:selectionKeys': (key: TreeSelectionKeys)=>void;
-  }
-}
-
 export type GenerateCollisionSignal = 'BVH3' |'BVH6' | 'AABox' | 'Sphere' | 'Capsule' | 'ConvexHull' | 'TriMesh' | 'BestFit Box' | 'Clear';
 type GenerateCollisionBus = UseEventBusReturn<GenerateCollisionSignal, string|null>;
 const EVENT_BUS_GENERATE_COLLISION = Symbol("EVENT_BUS_GENERATE_COLLISION")

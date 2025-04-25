@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "tsc && vite build && cp ./index.html ./dist/.",
+    "preview": "vite preview",
+    "visualize": "npx vite-bundle-visualizer"
   },
   "devDependencies": {
     "@types/react": "19.1.1",

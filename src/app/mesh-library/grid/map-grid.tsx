@@ -1,10 +1,11 @@
-import { defineComponent, VNode } from "vue";
+import { defineComponent, ref, VNode, watch } from "vue";
 
 import { injectDBProvider } from "../../common/services/provider-db";
-import { MapEntry } from "../../common/services/db";
+import { DBVariants, MapEntry } from "../../common/services/db";
 import MeshPreview from '../../common/toolbox/preview/mesh-previews';
 
 import './map-grid.scss';
+import { injectActiveModel } from "../../common/services/provider-active-model";
 
 export default defineComponent({
   methods: {
@@ -25,8 +26,32 @@ export default defineComponent({
       }
     }
   },
-  render() {
+  setup() {
+    const { activeModel } = injectActiveModel()!;
     const { map } = injectDBProvider()!;
+
+    const model = ref<string|null>(null);
+    const variant = ref<string|null>(null);
+    watch(activeModel, entry => {
+      if(entry) {
+        const [m,v] = entry?.split(':')
+        model.value = m;
+        if(v) {
+          DBVariants.getById(v).then(v => {
+            variant.value = v?.name || null;
+          })
+        } else {
+          variant.value = null;
+        }
+      } else {
+        model.value = null;
+      }
+    });
+
+    return { map, model, variant }
+  },
+  render() {
+    const map = this.map;
     const cells: VNode[] = [];
     let width = 0;
     let height = 0;
@@ -51,7 +76,12 @@ export default defineComponent({
     return <>
       <div class="map-grid" style={{ '--grid-width': width, '--grid-height': height }}>
         {cells}
-      </div></>
+      </div>
+      <div class={'selected-model'}>
+        {this.model ? this.model.replace(/^.*\//,''): <>&nbsp;</>}<br />
+        {this.variant ? <>{this.variant}</> : <>&nbsp;</>}
+      </div>
+      </>
       ;
   }
 });
