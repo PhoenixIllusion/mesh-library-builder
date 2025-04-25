@@ -1,4 +1,4 @@
-import { MeshEntry, DBMeshes, TextureEntry } from "../services/db";
+import { MeshEntry, DBMeshes, TextureEntry, DBTexture } from "../services/db";
 
 
 export interface DirContents {
@@ -20,6 +20,7 @@ export async function postTraverse(dirName: string, { previews, models, textures
           directory: dirName,
           name: key,
           gltf: model,
+          offset: [0,0,0],
           icon: {
             data: previewBlob,
             extension: previewExt
@@ -38,7 +39,7 @@ export async function postTraverse(dirName: string, { previews, models, textures
           data: blob
         })
       }
-      await DBMeshes.addTextureDirectory(entries);
+      await DBTexture.addTextureDirectory(entries);
     }
   }
 }

@@ -26,22 +26,24 @@ export default defineComponent({
     }
   },
   render() {
-    const { map, saveMap } = injectDBProvider()!;
+    const { map } = injectDBProvider()!;
     const cells: VNode[] = [];
     let width = 0;
     let height = 0;
-    if (map.data.value) {
-      const mapData = map.data.value;
+    if (map.loaded?.data.value) {
+      const mapData = map.loaded?.data.value;
       width = mapData.width;
       height = mapData.height;
       let idx = 0;
       for (let x = 0; x < mapData.width; x++)
         for (let y = 0; y < mapData.height; y++) {
           const key = idx++;
-          const model = mapData.data[key];
+          const data = mapData.data[key];
+          const model = data ? data.split(':')[0]: undefined;
+          const variant = data ? data.split(':')[1]: undefined;
           cells.push(
-            <div class="cell" data-slot={key} onDragover={(evt) => this.onDragOver(evt)} onDrop={(evt) => this.onDrop(saveMap, mapData, evt, key)}>
-              {model ? <MeshPreview mesh={model}></MeshPreview> : null}
+            <div class="cell" data-slot={key} onDragover={(evt) => this.onDragOver(evt)} onDrop={(evt) => this.onDrop(map.save, mapData, evt, key)}>
+              {model ? <MeshPreview mesh={model} variant={variant}></MeshPreview> : null}
             </div>
           );
         }

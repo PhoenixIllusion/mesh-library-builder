@@ -16,11 +16,11 @@ export function loadMapDialog(context: MapMenu.Data) {
   const { mapList } = injectDBProvider()!;
   return <Dialog v-model:visible={context.loadMap.ref} modal header="Load Map" style={{ width: '25rem' }}>
     { 
-    mapList.loading.value ? <ProgressSpinner /> :
+    mapList.list.loading.value ? <ProgressSpinner /> :
     <>
       <Listbox
           modelValue={selected.value}
-          options={mapList.data.value!}
+          options={mapList.list.data.value!}
           optionLabel={"name"}
           optionValue={"id"}
           onUpdate:modelValue={(value: string) => selected.value = value}>

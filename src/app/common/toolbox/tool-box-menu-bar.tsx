@@ -11,7 +11,7 @@ import { traverseZip } from "../util/zip-traverse";
 import { Menubar } from "primevue";
 
 function getMenuItems(): MenuItem[] {
-  const { selectDir } = injectDBProvider()!;
+  const { dir } = injectDBProvider()!;
 
   async function addNewDir() {
     const getDir = await window.showDirectoryPicker({ id: "load-mesh-library-dir" });
@@ -19,7 +19,7 @@ function getMenuItems(): MenuItem[] {
       await traverseDirectory(getDir);
       const dirs = await DBMeshes.getDirectories();
       if (dirs.includes(getDir.name)) {
-        selectDir(getDir.name);
+        dir.select(getDir.name);
       }
     }
   }
@@ -38,7 +38,7 @@ function getMenuItems(): MenuItem[] {
         traverseZip(await handle.getFile());
         const dirs = await DBMeshes.getDirectories();
         if (dirs.includes(handle.name)) {
-          selectDir(handle.name);
+          dir.select(handle.name);
         }
       }
     }

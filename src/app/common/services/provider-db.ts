@@ -1,5 +1,5 @@
 import { App, inject, Ref, ref, shallowRef, ShallowRef, watch } from "vue";
-import { CollisionEntry, DBMap, DBMeshes, DBSession, MapEntry, MeshEntry } from "./db";
+import { CollisionEntry, DBMap, DBMeshes, DBSession, DBVariants, MapEntry, VariantEntry } from "./db";
 import { CollisionNode } from "./collision";
 
 export interface Pending<T> {
@@ -25,29 +25,6 @@ function createPending<T extends Awaited<ReturnType<F>>, F extends (...args: any
   return [func, pending];
 }
 
-export interface DBProvider {
-  map: Pending<MapEntry | null>;
-  loadMap(guid: string): void;
-
-  saveMap(map: MapEntry): void;
-  newMap(name?: string, width?: number, height?: number): void;
-  editMap(map: MapEntry, name: string, width: number, height: number): void;
-
-  loadMapList(): void;
-  mapList: Pending<MapEntry[]>;
-
-  loadDirList(): void;
-  dirList: Pending<string[]>;
-
-  selectDir(dir: string): void;
-  activeDir: ShallowRef<string | null>
-  loadedDir: Pending<MeshEntry[]>;
-
-  collisionData: ShallowRef<CollisionEntry | null>,
-  saveCollisionData(name: string, collision: CollisionNode[]): void;
-  loadCollisionData(name: string): void;
-}
-
 const __symb = Symbol('DBProvider');
 
 export function provideDBProvider(app: App<Element>) {
@@ -58,23 +35,13 @@ export function injectDBProvider() {
   return inject<DBProvider>(__symb)
 }
 
-function createDBProvider(): DBProvider {
 
+function mapFunctionality() {
   const [loadMap, map] = createPending(DBMap.load);
 
   function saveMap(_map: MapEntry) {
     DBMap.save(_map).then(m => map.data.value = m);
   }
-
-  const [loadMapList, mapList] = createPending(DBMap.getAll);
-
-  const [loadDirList, dirList] = createPending(DBMeshes.getDirectories);
-
-  const activeDir = shallowRef<string | null>(null);
-  const [selectDir, loadedDir] = createPending((dir: string) => {
-    activeDir.value = dir;
-    return DBMeshes.getDirectory(dir);
-  })
 
   function editMap(_map: MapEntry, name: string, width: number, height: number) {
     const newMap = DBMap.resize(_map, width, height);
@@ -85,14 +52,81 @@ function createDBProvider(): DBProvider {
     DBMap.create(name, width, height).then(_map => map.data.value = _map);
   }
 
+  return {
+    loaded: map,
+    new: newMap,
+    load: loadMap,
+    save: saveMap,
+    edit: editMap
+  }
+}
+
+function collisionFunctionality() {
+  const collisionData: Ref<CollisionEntry | null> = shallowRef(null);
+  function loadCollisionData(name: string) {
+    DBMeshes.loadCollisionData(name).then(res => collisionData.value = res);
+  }
+  function saveCollisionData(name: string, collision: CollisionNode[]) {
+    DBMeshes.saveCollisionData(name, collision).then(res => collisionData.value = res);
+  }
+  return {
+    loaded: collisionData,
+    save: saveCollisionData,
+    load: loadCollisionData
+  }
+}
+
+function variantFunctionality() {
+  const [loadVariants, variants] = createPending((mesh: string|null) => DBVariants.getByMeshName(mesh));
+  const activeVariant = ref<VariantEntry|null>(null);
+  const selectVariant = (v: VariantEntry|null) => {
+    activeVariant.value = v;
+  }
+  const newVariant = async (mesh: string, data: Partial<VariantEntry>) => {
+    activeVariant.value = await DBVariants.newVariantForMeshName(mesh, data);
+  }
+  const updateVariant = async (v: VariantEntry) => {
+    activeVariant.value = await DBVariants.updateVariant(v);
+  }
+  const deleteVariant = async (v: VariantEntry) => {
+    activeVariant.value = await DBVariants.deleteVariant(v);
+  }
+  return {
+    loadList: loadVariants, list: variants,
+
+    active: activeVariant, select: selectVariant,
+
+    new: newVariant, update: updateVariant, delete: deleteVariant
+  }
+}
+
+
+export type DBProvider = ReturnType<typeof createDBProvider> 
+
+function createDBProvider() {
+
+  const mapFunc = mapFunctionality();
+  const collisionFunc = collisionFunctionality();
+  const variantFunc = variantFunctionality();
+
+  const [loadMapList, mapList] = createPending(DBMap.getAll);
+  const [loadDirList, dirList] = createPending(DBMeshes.getDirectories);
+
+  const activeDir = shallowRef<string | null>(null);
+  const [selectDir, loadedDir] = createPending((dir: string) => {
+    activeDir.value = dir;
+    return DBMeshes.getDirectory(dir);
+  })
+
+
   DBSession.load().then(session => {
     if (session.activeMap?.length) {
-      loadMap(session.activeMap);
+      mapFunc.load(session.activeMap);
     }
     if (session.activeTab?.length) {
       selectDir(session.activeTab);
     }
-    watch(map.data, (_map) => {
+    watch(mapFunc.loaded.data, (_map) => {
       if (_map) {
         session.activeMap = _map.guid;
       }
@@ -107,33 +141,25 @@ function createDBProvider(): DBProvider {
   })
   loadDirList();
 
-  const collisionData: Ref<CollisionEntry | null> = shallowRef(null);
-  function loadCollisionData(name: string) {
-    DBMeshes.loadCollisionData(name).then(res => collisionData.value = res);
-  }
-  function saveCollisionData(name: string, collision: CollisionNode[]) {
-    DBMeshes.saveCollisionData(name, collision).then(res => collisionData.value = res);
-  }
 
   return {
-    map,
-    newMap,
-    loadMap,
-    saveMap,
-    editMap,
+    map: mapFunc,
 
-    loadMapList,
-    mapList,
+    mapList: {
+      load: loadMapList,
+      list: mapList
+    },
 
-    loadDirList,
-    dirList,
+    dir: {
+      load: loadDirList,
+      list: dirList,
+      select: selectDir,
+      loaded: loadedDir,
+      active: activeDir,
+    },
 
-    selectDir,
-    loadedDir,
-    activeDir,
 
-    collisionData,
-    saveCollisionData,
-    loadCollisionData
+    collision: collisionFunc,
+    variants: variantFunc
   }
 }

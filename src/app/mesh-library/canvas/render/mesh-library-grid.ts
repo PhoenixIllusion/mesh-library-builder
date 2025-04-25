@@ -40,8 +40,8 @@ async function updateModelGrid(context: GridCanvas.Data, map: MapEntry) {
   gridItems.forEach(async (cell, index) => {
     let item = map.data[index++];
     if (item?.length) {
-      item = item.replace(/\.png/, '');
-      const newEle = (await loadDBModel(item))?.scene?.clone();
+      const [model, variant] = item.split(':');
+      const newEle = (await loadDBModel(model, variant||null))?.scene?.clone();
       const dbData = await DBMeshes.getMeshByName(item);
       if (newEle) {
         if(dbData) {

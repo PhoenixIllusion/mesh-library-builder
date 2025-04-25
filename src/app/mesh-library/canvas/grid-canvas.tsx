@@ -30,7 +30,7 @@ export default defineComponent({
       gridHelper: null,
       gridItems: []
     }
-    watch([map.data, accessor.scene], ([newMap, newScene]) => {
+    watch([map.loaded.data, accessor.scene], ([newMap, newScene]) => {
       if (newMap && newScene) {
         updateMeshLibraryGrid(data, newMap);
       }

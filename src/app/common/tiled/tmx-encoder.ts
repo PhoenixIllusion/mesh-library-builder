@@ -1,6 +1,7 @@
 import { DBMeshes, MapEntry } from "../services/db";
 
 import type { TiledTileset, TiledMapOrthogonal, TiledLayerAbstract, TiledLayerType } from 'tiled-types'
+import { Dimension, renderPreviewImage, renderVariant } from "../util/render-preview";
 
 export namespace TSX {
   export interface TileSet extends Partial<TiledTileset> {
@@ -126,15 +127,15 @@ export async function createTsxImage(mapEntry: MapEntry): Promise<{ name: string
   let index = 0;
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++) {
-      const model = data[index++];
-      if (model) {
-        const mesh = await DBMeshes.getMeshByName(model);
-        const blob = mesh?.icon?.data;
-        if (canvas && blob) {
-          const img = await createImageBitmap(blob);
+      const entry = data[index++];
+      if (entry) {
+        const [model, variant] = entry.split(':')
+        if (canvas) {
           const ix = x * (TILE_WIDTH + TILE_SPACING);
           const iy = y * (TILE_HEIGHT + TILE_SPACING);
-          ctx.drawImage(img, ix, iy, TILE_WIDTH, TILE_HEIGHT);
+          const pos: Dimension = [ix, iy, TILE_WIDTH, TILE_HEIGHT];
+          await renderPreviewImage(model, ctx, pos)
+          await renderVariant(variant, ctx, pos)
           markCanvasDirection({ x: ix, y: iy }, ctx);
         }
       }

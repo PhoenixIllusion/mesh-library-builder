@@ -186,9 +186,10 @@ export async function writeMeshLibrary(map_id: string) {
         obj.position.x = (width - x - width / 2.0)
         obj.position.z = (height - y - height / 2.0)
         obj.name = (''+index).padStart(4, '0');
-        const model = data[index++];
-        if (model) {
-          const gltf = await loadDBModel(model);
+        const entry = data[index++];
+        if (entry) {
+          const [model, variant] = entry.split(':')
+          const gltf = await loadDBModel(model, variant);
           if (gltf) {
             const meshes = flattenObjectTree(gltf.scene)
             if (meshes.length == 1) {

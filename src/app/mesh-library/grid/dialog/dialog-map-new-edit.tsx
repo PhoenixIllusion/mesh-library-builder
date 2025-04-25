@@ -19,19 +19,19 @@ function getBool(v: Ref<boolean,boolean>|boolean): boolean {
 
 
 function editMap(db: DBProvider, isEdit: boolean, name: string, width: number, height: number) {
-  const { map, newMap, editMap } = db;
-  const _curMap = map?.data?.value;
+  const { map } = db;
+  const _curMap = map?.loaded?.data?.value;
   if(isEdit && _curMap) {
-    editMap(_curMap, name, width, height);
+    map.edit(_curMap, name, width, height);
   } else {
-    newMap(name, width, height);
+    map.new(name, width, height);
   }
 }
 
 export function newMapDialog(context: MapMenu.Data) {
   const db: DBProvider = injectDBProvider()!;
   const { map } = db;
-  const _curMap = map?.data?.value;
+  const _curMap = map?.loaded?.data?.value;
   const isEdit = getBool(context.editMap.ref);
   const obj = (_curMap && isEdit) ? {
     name: ref(_curMap.name),

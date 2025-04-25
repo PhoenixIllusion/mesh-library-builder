@@ -21,10 +21,10 @@ function transformMatrix(m: F12) {
 export default defineComponent({
   setup() {
     const gridmap = injectGridMapProvider()!;
-    const { mapList, loadMapList } = injectDBProvider()!;
-    loadMapList();
+    const { mapList } = injectDBProvider()!;
+    mapList.load();
     return {
-      gridmap, mapList: mapList.data
+      gridmap, mapList: mapList.list.data
     }
   },
   render() {

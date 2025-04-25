@@ -53,11 +53,11 @@ function exporTSX(map: PendingV<MapEntry>) {
 }
 
 function getMenuItems(context: MapMenu.Data): MenuItem[] {
-  const { loadMapList } = injectDBProvider()!;
+  const { mapList } = injectDBProvider()!;
   return [
     { label: 'New', icon: PrimeIcons.FILE_PLUS, command: () => { context.newMap.show() } },
     { label: 'Edit', icon: PrimeIcons.CLOUD_DOWNLOAD, command: () => { context.editMap.show() }, disabled: context.map.data == null },
-    { label: 'Load', icon: PrimeIcons.CLOUD_UPLOAD, command: () => { loadMapList(); context.loadMap.show() } },
+    { label: 'Load', icon: PrimeIcons.CLOUD_UPLOAD, command: () => { mapList.load(); context.loadMap.show() } },
     {
       label: 'Export', icon: PrimeIcons.DOWNLOAD,
       items: [
@@ -86,7 +86,7 @@ export default defineComponent({
     const loadMap = makeVisibility();
     const newEditVisible = computed({ get: () => newMap.ref.value || editMap.ref.value, set: (_: boolean) => { editMap.hide(); newMap.hide() } });
     return {
-      newMap, editMap, loadMap, newEditVisible, map
+      newMap, editMap, loadMap, newEditVisible, map: map.loaded
     }
   },
   render() {

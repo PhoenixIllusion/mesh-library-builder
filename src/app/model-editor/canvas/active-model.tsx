@@ -37,7 +37,7 @@ export namespace ActiveModel {
 }
 
 
-async function renderModel(data: ActiveModel.Data, model: string | null) {
+async function renderModel(data: ActiveModel.Data, variantId: string|null, model: string | null) {
   if(data.scene() && !data.scene()?.getObjectByName('grid-helper')) {
     const grid = new GridHelper();
     grid.name = 'grid-helper';
@@ -51,7 +51,7 @@ async function renderModel(data: ActiveModel.Data, model: string | null) {
     data.root.remove(data.obj)
   }
   if (model) {
-    const obj = await loadDBModel(model);
+    const obj = await loadDBModel(model, variantId);
     if (obj?.scene) {
       DBMeshes.getMeshByName(model).then(db => {
         data.root.position.set(... db?.offset||[0,0,0])
@@ -80,25 +80,25 @@ export default defineComponent({
   },
   setup() {
     const { activeModel } = injectActiveModel()!;
-    const { collisionData, saveCollisionData } = injectDBProvider()!;
+    const { collision, variants } = injectDBProvider()!;
     const accessorScene = createScene();
     const accessorCamera = createCamera();
 
     const root = new Object3D();
-    const collision = new Object3D();
-    root.add(collision);  
+    const collisionNode = new Object3D();
+    root.add(collisionNode);  
     const data: ActiveModel.Data = {
       scene() { return accessorScene.scene.value },
       obj: null,
-      collision, root
+      collision: collisionNode, root
     }
 
-    watch([activeModel, accessorScene.scene], ([newModel, newScene]) => {
+    watch([activeModel, variants.active, accessorScene.scene], ([newModel, variant, newScene]) => {
       if (newScene) {
-        renderModel(data, newModel);
+        renderModel(data, variant?.id||null, newModel);
       }
     })
-    watch([accessorScene.scene, collisionData], ([newScene, newCollisionData]) => {
+    watch([accessorScene.scene, collision.loaded], ([newScene, newCollisionData]) => {
       if (newScene) {
         renderCollisionData(data, newCollisionData?.collision || null)
       }
@@ -107,9 +107,9 @@ export default defineComponent({
     const eventBus = useGenerateCollisionBus();
     const unsubscribeCollisionBus = eventBus.on((evt, payload) => {
       if (payload) {
-        saveCollisionData(payload, generateCollisionData(data, evt))
+        collision.save(payload, generateCollisionData(data, evt))
       } else {
-        collisionData.value = null;
+        collision.loaded.value = null;
       }
     });
     const selectionBus = useSelectCollisionNodeBus();

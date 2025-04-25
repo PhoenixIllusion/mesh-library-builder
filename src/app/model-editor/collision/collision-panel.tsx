@@ -140,15 +140,15 @@ export default defineComponent({
   },
   setup() {
     const { activeModel } = injectActiveModel()!;
-    const { collisionData, loadCollisionData, saveCollisionData } = injectDBProvider()!;
+    const { collision } = injectDBProvider()!;
 
     let _id: string | null = null;
     watch(activeModel, async (id: string|null) => {
       if(_id !== id) {
         if(id) {
-          loadCollisionData(id);
+          collision.load(id);
         } else {
-          collisionData.value = null;
+          collision.loaded.value = null;
         }
       }
       _id = id;
@@ -157,11 +157,11 @@ export default defineComponent({
     const generateCollisionBus: GenerateCollisionBus = useGenerateCollisionBus();
     const onSelectBus = useSelectCollisionNodeBus();
 
-    return { activeModel, collisionData, saveCollisionData, generateCollisionBus, onSelectBus, clipboard: useClipboard() }
+    return { activeModel, collision, generateCollisionBus, onSelectBus, clipboard: useClipboard() }
   },
   render() {
 
-    const collisionNodes = this.collisionData?.collision || [];
+    const collisionNodes = this.collision.loaded.value?.collision || [];
     const treeNodes: TreeNode[] = collisionNodes.map( (d,i) => convertCollisionNodes(d, this.collisionMap, collisionNodes, ''+i))||[];
     const selectedKeys = ref<TreeSelectionKeys>({});
 
@@ -171,13 +171,13 @@ export default defineComponent({
     const menuAction = (action: 'add'|'remove'|'up'|'down') => {
       const r = modifyNodes(getKey(), collisionNodes, this.collisionMap, action)
       if(this.activeModel && r && r !== collisionNodes) {
-        this.saveCollisionData(this.activeModel, toRaw(r));
+        this.collision.save(this.activeModel, toRaw(r));
       }
     }
     const copyPasteAction = (action: 'copy'|'paste') => {
       const r = copyPaste(this.clipboard, getKey(), collisionNodes, this.collisionMap, action)
       if(this.activeModel && r && r !== collisionNodes) {
-        this.saveCollisionData(this.activeModel, toRaw(r));
+        this.collision.save(this.activeModel, toRaw(r));
       }
     }
     const getMenuItems: ()=>MenuItem[] = () => {
