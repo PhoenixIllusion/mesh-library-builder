@@ -19,13 +19,12 @@ interface Session {
   activeTab: string;
 }
 
-type MapKey = `${number}-${number}`;
 export interface MapEntry {
   guid: string;
   name: string;
   width: number;
   height: number;
-  data: Record<MapKey, string>;
+  data: Array<string|null|undefined>;
 }
 
 export interface TextureEntry {
@@ -44,11 +43,41 @@ export interface MeshEntry {
   icon: PreviewEntry;
   directory: string;
   name: string;
+  offset: [number,number,number]
 }
 
 export interface CollisionEntry {
   name: string;
   collision: CollisionNode[];
+}
+
+export interface MaterialOverrideNormal {
+  texture: string;
+  scale: number;
+}
+
+export interface MaterialOverrideBase {
+  name: string;
+  metallic: number;
+  roughness: number;
+  normal?: MaterialOverrideNormal
+}
+
+export interface MaterialOverrideTexture extends MaterialOverrideBase {
+  texture: string;
+}
+export interface MaterialOverridePBR extends MaterialOverrideBase {
+  color: [number,number,number,number];
+}
+
+export type MaterialOverride = MaterialOverrideTexture | MaterialOverridePBR
+
+export interface VariantEntry {
+  id: string;
+  directory: string;
+  name: string;
+  mesh: string;
+  materials: MaterialOverride[]
 }
 
 interface MeshLibraryDB extends DBSchema {
@@ -77,19 +106,37 @@ interface MeshLibraryDB extends DBSchema {
   directories: {
     key: string;
     value: string;
+  },
+  variants: {
+    key: string;
+    value: VariantEntry;
+    indexes: { 'by-mesh': string, 'by-directory': string };
   }
 }
 
 const _db = openDB<MeshLibraryDB>('mesh-library-db', 1, {
   upgrade(db) {
-    db.createObjectStore('session', { keyPath: 'id' });
-    db.createObjectStore('maps', { keyPath: 'guid' });
-    db.createObjectStore('directories');
-    db.createObjectStore('collision', { keyPath: 'name' });
-    const mesh = db.createObjectStore('mesh', { keyPath: 'name' });
-    mesh.createIndex('by-directory', 'directory')
-    const tex = db.createObjectStore('textures', { keyPath: 'name' });
-    tex.createIndex('by-directory', 'directory')
+    if(!db.objectStoreNames.contains('session'))
+      db.createObjectStore('session', { keyPath: 'id' });
+    if(!db.objectStoreNames.contains('maps'))
+      db.createObjectStore('maps', { keyPath: 'guid' });
+    if(!db.objectStoreNames.contains('directories'))
+      db.createObjectStore('directories');
+    if(!db.objectStoreNames.contains('collision'))
+      db.createObjectStore('collision', { keyPath: 'name' });
+    if(!db.objectStoreNames.contains('mesh')) {
+      const mesh = db.createObjectStore('mesh', { keyPath: 'name' });
+      mesh.createIndex('by-directory', 'directory')  
+    }
+    if(!db.objectStoreNames.contains('textures')) {
+      const tex = db.createObjectStore('textures', { keyPath: 'name' });
+      tex.createIndex('by-directory', 'directory')
+    }
+    if(!db.objectStoreNames.contains('variants')) {
+      const variant = db.createObjectStore('variants', { keyPath: 'id' });
+      variant.createIndex('by-mesh', 'mesh')
+      variant.createIndex('by-directory', 'directory')
+    }
   }
 })
 
@@ -121,7 +168,7 @@ export class DBMap {
       name: name || guid,
       width,
       height,
-      data: {}
+      data: []
     }
     const db = await _db;
     db.put('maps', map)
@@ -132,19 +179,13 @@ export class DBMap {
     const result = this.clone(map);
     result.width = width;
     result.height = height;
-    const keys = Array.from(Object.keys(result.data));
-    keys.forEach(k => {
-      const [y, x] = k.split('-').map(s => parseInt(s, 10));
-      if (y >= height || x >= width) {
-        delete result.data[`${y}-${x}`];
-      }
-    })
+    result.data = result.data.slice(0, width * height);
     return result;
   }
 
   static clone(map: MapEntry): MapEntry {
     const result = Object.assign({}, map);
-    result.data = Object.assign({}, map.data);
+    result.data = [... map.data];
     return result;
   }
 
@@ -168,21 +209,55 @@ export class DBMap {
   }
 
 }
-
-export class DBMeshes {
-  static async getDirectories(): Promise<string[]> {
+export class DBVariants {
+  static async getByMeshName(name: string|null): Promise<VariantEntry[]> {
+    if(!name) {
+      return [];
+    }
     const db = await _db;
-    return await db.getAll('directories');
+    return (await db.getAllFromIndex('variants', 'by-mesh', name));
   }
-  static async getMeshByName(name: string): Promise<MeshEntry | null> {
-    return getByKey('mesh', name);
+  static async getById(id: string): Promise<VariantEntry|null> {
+    return getByKey('variants', id);
   }
+  static async getByDirectory(dir: string|null): Promise<VariantEntry[]> {
+    if(!dir) {
+      return [];
+    }
+    const db = await _db;
+    return (await db.getAllFromIndex('variants', 'by-directory', dir));
+  }
+  static async newVariantForMeshName(mesh: string, data: Partial<VariantEntry>): Promise<VariantEntry> {
+    const db = await _db;
+    const id = generateGuid();
+    const meshEntry = await DBMeshes.getMeshByName(mesh);
+    const variant: VariantEntry = Object.assign({
+      id,
+      name: id,
+      directory: meshEntry?.directory||'',
+      mesh,
+      materials: []
+    }, data);
+    await db.put('variants', variant);
+    return variant;
+  }
+  static async updateVariant(curVariant: VariantEntry): Promise<VariantEntry> {
+    const db = await _db;
+    const variant = Object.assign({}, curVariant);
+    await db.put('variants', variant);
+    return variant;
+  }
+  static async deleteVariant(variant: VariantEntry): Promise<null> {
+    const db = await _db;
+    await db.delete('variants', variant.id);
+    return null;
+  }
+}
+
+export class DBTexture {
+
   static async getTextureByName(name: string): Promise<TextureEntry | null> {
     return getByKey('textures', name);
-  }
-  static async getDirectory(dir: string): Promise<MeshEntry[]> {
-    const db = await _db;
-    return db.getAllFromIndex('mesh', 'by-directory', dir);
   }
   static async addTextureDirectory(data: TextureEntry[]): Promise<void> {
     if (data.length) {
@@ -201,6 +276,32 @@ export class DBMeshes {
       cursor.delete()
     }
     await tx.done;
+  }
+  static async getTextureDirectories(): Promise<string[]> {
+    const db = await _db;
+    const entries = await db.getAllFromIndex('textures', 'by-directory')
+    return entries.map(x => x.directory).filter((value, index, array) => {
+      return array.indexOf(value) === index;
+    });
+  }
+
+  static async getTexturesByDirectory(dir: string): Promise<TextureEntry[]> {
+    const db = await _db;
+    return await db.getAllFromIndex('textures', 'by-directory', dir);
+  }
+}
+
+export class DBMeshes {
+  static async getDirectories(): Promise<string[]> {
+    const db = await _db;
+    return await db.getAll('directories');
+  }
+  static async getMeshByName(name: string): Promise<MeshEntry | null> {
+    return getByKey('mesh', name);
+  }
+  static async getDirectory(dir: string): Promise<MeshEntry[]> {
+    const db = await _db;
+    return db.getAllFromIndex('mesh', 'by-directory', dir);
   }
   static async addMeshDirectory(data: MeshEntry[]): Promise<void> {
     if (data.length) {
@@ -223,7 +324,7 @@ export class DBMeshes {
   static async deleteDirectory(dir: string): Promise<void> {
     const db = await _db;
     await db.delete('directories', dir);
-    await this.deleteTextureDirectory(dir);
+    await DBTexture.deleteTextureDirectory(dir);
     await this.deleteMeshDirectory(dir);
   }
 

@@ -6,10 +6,7 @@ import { BoxLineGeometry, BufferGeometryUtils, ConvexGeometry, ConvexHull } from
 import { MeshBVH, SAH } from "three-mesh-bvh";
 
 export function clearCollisionModels(data: ActiveModel.Data) {
-  if (data.collision) {
-    data.collision.removeFromParent();
-    data.collision = null;
-  }
+  data.collision?.remove(... data.collision?.children||[])
 }
 
 
@@ -73,9 +70,8 @@ export function renderCollisionData(data: ActiveModel.Data, collision: Collision
   if (!collision?.length) {
     return;
   }
-  const root = data.collision = new Object3D();
+  const root = data.collision;
   renderCollisionDataToNode(root, collision);
-  data.scene()?.add(root);
 }
 
 export function renderCollisionDataSelection(data: ActiveModel.Data, key: string | null) {

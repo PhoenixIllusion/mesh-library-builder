@@ -2,36 +2,25 @@ import { Scene, Object3D, GridHelper } from "three";
 import { GridCanvas } from "../grid-canvas";
 import { loadDBModel } from "../../../common/loader/db-model-loader";
 import { disableMetalness } from "../../../common/loader/model-utils";
-import { MapEntry } from "../../../common/services/db";
+import { DBMeshes, MapEntry } from "../../../common/services/db";
 
 
 function initGrid(context: GridCanvas.Data, width: number, height: number) {
   let { gridHelper, gridItems } = context
   const scene = context.scene() as Scene;
-  const toRemove: string[] = [];
-  for (let [k, _] of gridItems.entries()) {
-    const [y, x] = k.split('-').map(s => parseInt(s, 10));
-    if (y >= height || x >= width) {
-      toRemove.push(k);
-      return;
-    }
-  }
-  toRemove.forEach(k => {
-    const obj = gridItems.get(k);
-    gridItems.delete(k);
-    obj?.removeFromParent();
-  })
-  for (let x = 0; x < width; x++)
-    for (let y = 0; y < height; y++) {
-      const slot = `${y}-${x}`;
-      if (!gridItems.has(slot)) {
+  gridItems.forEach(k => {
+    k?.removeFromParent();
+  });
+  gridItems.length = 0;
+  let idx = 0;
+  for (let y = 0; y < height; y++)
+  for (let x = 0; x < width; x++) {
         const obj = new Object3D();
         obj.position.x = (width - x - width / 2.0)
         obj.position.z = (height - y - height / 2.0)
-        obj.name = slot;
+        obj.name = `slot-${idx}`;
         scene?.add(obj);
-        gridItems.set(slot, obj);
-      }
+        gridItems[idx++] = obj;
     }
   if (gridHelper != null) {
     scene?.remove(gridHelper as GridHelper);
@@ -45,21 +34,22 @@ function initGrid(context: GridCanvas.Data, width: number, height: number) {
   context.gridHelper = gridHelper;
 }
 
-function updateModelGrid(context: GridCanvas.Data, map: MapEntry) {
+async function updateModelGrid(context: GridCanvas.Data, map: MapEntry) {
   const { gridItems } = context;
-  Object.entries(map.data).forEach(async ([slot, item]) => {
-    const entry = gridItems.get(slot);
-    if (entry) {
-      if (item.length) {
-        item = item.replace(/\.png/, '');
-        const newEle = (await loadDBModel(item))?.scene;
-        if (newEle && entry.children[0]?.name != newEle.name) {
-          disableMetalness(newEle);
-          entry.remove(...entry.children);
-          entry.add(newEle.clone());
+
+  gridItems.forEach(async (cell, index) => {
+    let item = map.data[index++];
+    if (item?.length) {
+      const [model, variant] = item.split(':');
+      const newEle = (await loadDBModel(model, variant||null))?.scene?.clone();
+      const dbData = await DBMeshes.getMeshByName(item);
+      if (newEle) {
+        if(dbData) {
+          const offset = dbData.offset||[0,0,0];
+          newEle.position.set(... offset);
         }
-      } else {
-        entry.remove(...entry.children)
+        disableMetalness(newEle);
+        cell.add(newEle);
       }
     }
   });

@@ -4,28 +4,24 @@ import { ref } from "vue";
 import { MapMenu } from "../../grid/map-menu-bar";
 import { Dialog, ProgressSpinner, Listbox, Button } from "primevue";
 
-
-declare module 'primevue' {
-  interface ListboxProps {
-    'onUpdate:modelValue': (value: string)=>void;
-  }
-}
-
 export function loadMapDialog(context: MapMenu.Data) {
-  const selected = ref<string|null>()
-  const { mapList } = injectDBProvider()!;
+  const { mapList, map } = injectDBProvider()!;
+  const selected = ref<string|null>(map.loaded?.data?.value?.guid || null)
+
   return <Dialog v-model:visible={context.loadMap.ref} modal header="Load Map" style={{ width: '25rem' }}>
     { 
-    mapList.loading.value ? <ProgressSpinner /> :
+    mapList.list.loading.value ? <ProgressSpinner /> :
     <>
       <Listbox
           modelValue={selected.value}
-          options={mapList.data.value!}
+          options={mapList.list.data.value!}
           optionLabel={"name"}
-          optionValue={"id"}
+          optionValue={"guid"}
           onUpdate:modelValue={(value: string) => selected.value = value}>
       </Listbox>
-      <Button severity="secondary" label="Load" />
+      <Button severity="secondary" 
+          onClick={() => { selected.value && map.load(selected.value);context.loadMap.hide(); }}
+          label="Load" disabled={!selected.value} />
     </>
     }
   </Dialog>

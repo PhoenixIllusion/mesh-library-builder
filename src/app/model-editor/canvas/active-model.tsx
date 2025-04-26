@@ -1,8 +1,8 @@
 import { defineComponent, PropType, watch } from "vue";
 import { injectActiveModel } from "../../common/services/provider-active-model";
-import { BatchedMesh, BufferGeometry, Camera, Mesh, Object3D, Scene } from "three";
+import { BatchedMesh, BufferGeometry, Camera, GridHelper, Mesh, Object3D, Scene } from "three";
 import ThreeCanvas, { createCamera, createScene } from "../../common/three-canvas";
-import { MapEntry } from "../../common/services/db";
+import { DBMeshes, MapEntry } from "../../common/services/db";
 
 import './active-model.scss';
 import { loadDBModel } from "../../common/loader/db-model-loader";
@@ -30,22 +30,34 @@ BatchedMesh.prototype.raycast = acceleratedRaycast;
 export namespace ActiveModel {
   export interface Data {
     scene: () => Scene | null;
-    obj: Object3D | null;
-    collision: Object3D | null;
+    root: Object3D;
+    obj: Object3D;
+    collision: Object3D;
   }
 }
 
 
-async function renderModel(data: ActiveModel.Data, model: string | null) {
-  if (data.obj) {
-    data.scene()?.remove(data.obj)
+async function renderModel(data: ActiveModel.Data, variantId: string|null, model: string | null) {
+  if(data.scene() && !data.scene()?.getObjectByName('grid-helper')) {
+    const grid = new GridHelper();
+    grid.name = 'grid-helper';
+    grid.position.set(0.5,0,0.5);
+    data.scene()?.add(grid);
   }
+  if(!data.root.parent) {
+    data.scene()?.add(data.root);
+  }
+  const obj = [... (data.obj.children||[])]
+  data.obj.remove(... obj);
   if (model) {
-    const obj = await loadDBModel(model);
+    const obj = await loadDBModel(model, variantId);
     if (obj?.scene) {
-      data.obj = obj.scene;
-      disableMetalness(data.obj);
-      data.scene()?.add(data.obj);
+      DBMeshes.getMeshByName(model).then(db => {
+        data.root.position.set(... db?.offset||[0,0,0])
+      })
+      const entry = obj.scene.clone();
+      data.obj.add(entry);
+      disableMetalness(entry);
     }
   }
 }
@@ -67,22 +79,27 @@ export default defineComponent({
   },
   setup() {
     const { activeModel } = injectActiveModel()!;
-    const { collisionData, saveCollisionData } = injectDBProvider()!;
+    const { collision, variants } = injectDBProvider()!;
     const accessorScene = createScene();
     const accessorCamera = createCamera();
 
+    const root = new Object3D();
+    const collisionNode = new Object3D();
+    const obj = new Object3D();
+    root.add(collisionNode);  
+    root.add(obj);  
     const data: ActiveModel.Data = {
       scene() { return accessorScene.scene.value },
-      obj: null,
-      collision: null
+      obj,
+      collision: collisionNode, root
     }
 
-    watch([activeModel, accessorScene.scene], ([newModel, newScene]) => {
+    watch([activeModel, variants.active, accessorScene.scene], ([newModel, variant, newScene]) => {
       if (newScene) {
-        renderModel(data, newModel);
+        renderModel(data, variant?.id||null, newModel);
       }
     })
-    watch([accessorScene.scene, collisionData], ([newScene, newCollisionData]) => {
+    watch([accessorScene.scene, collision.loaded], ([newScene, newCollisionData]) => {
       if (newScene) {
         renderCollisionData(data, newCollisionData?.collision || null)
       }
@@ -91,9 +108,9 @@ export default defineComponent({
     const eventBus = useGenerateCollisionBus();
     const unsubscribeCollisionBus = eventBus.on((evt, payload) => {
       if (payload) {
-        saveCollisionData(payload, generateCollisionData(data, evt))
+        collision.save(payload, generateCollisionData(data, evt))
       } else {
-        collisionData.value = null;
+        collision.loaded.value = null;
       }
     });
     const selectionBus = useSelectCollisionNodeBus();

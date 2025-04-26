@@ -179,30 +179,46 @@ export async function writeMeshLibrary(map_id: string) {
     const root = new Object3D();
     const collisionMap: Map<Object3D, CollisionNode | null> = new Map();
     const { width, height, data } = map;
+    let index = 0;
     for (let y = 0; y < height; y++)
       for (let x = 0; x < width; x++) {
-        const slot: `${number}-${number}` = `${y}-${x}`;
         const obj = new Object3D();
         obj.position.x = (width - x - width / 2.0)
         obj.position.z = (height - y - height / 2.0)
-        obj.name = ('' + (x + y * width)).padStart(4).replaceAll(' ', '0');
-        const model = data[slot];
-        if (model) {
-          const gltf = await loadDBModel(model);
+        obj.name = (''+index).padStart(4, '0');
+        const entry = data[index++];
+        if (entry) {
+          const [model, variant] = entry.split(':')
+          const gltf = await loadDBModel(model, variant);
           if (gltf) {
             const meshes = flattenObjectTree(gltf.scene)
             if (meshes.length == 1) {
               const mesh = meshes[0];
-              mesh.geometry.rotateY(Math.PI);
               const data = await DBMeshes.loadCollisionData(model);
+
               const collisionNode = new Object3D();
               data?.collision?.forEach(node => {
                 addCollisionNode(collisionNode, node, collisionMap);
               })
               mesh.name = `${obj.name} - ${model}`;
+              const dbData = await DBMeshes.getMeshByName(model);
+              if(dbData) {
+                const offset = dbData.offset||[0,0,0];
+                meshes.forEach(mesh => mesh.geometry.translate(... offset));
+                collisionNode.position.set(-offset[0], offset[1], -offset[2])
+              }
+              mesh.geometry.rotateY(Math.PI);
               obj.rotateY(Math.PI);
               collisionNode.rotateY(Math.PI);
-              mesh.add(collisionNode);
+              const childCNodes = [... collisionNode.children]
+              collisionNode.updateMatrix();
+              childCNodes.forEach(child => {
+                child.applyMatrix4(collisionNode.matrix);
+                child.updateMatrix();
+                child.removeFromParent();
+                mesh.add(child);
+              })
+              
               obj.add(mesh);
             } else {
               console.error(`Error flattening ${model}. Mesh has more than one type of geometry.`)

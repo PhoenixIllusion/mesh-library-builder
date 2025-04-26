@@ -1,1 +1,1 @@
-npm ci && npm run build
+npm ci && npm run build && cp ./index.html ./dist/

@@ -2,17 +2,23 @@ import { defineComponent, ref } from "vue";
 import { injectActiveModel } from "../../services/provider-active-model";
 
 import './mesh-preview.scss';
-import { renderPreviewImage } from "../../util/render-preview";
+import { renderPreviewImage, renderVariant } from "../../util/render-preview";
 
 export default defineComponent({
   props: {
     mesh: String,
+    variant: String,
     inUse: Boolean
   },
   methods: {
-    update(cur: string | undefined) {
+    async update(meshId: string | undefined, variantId: string | undefined) {
       const canvas: HTMLCanvasElement = this.$el;
-      renderPreviewImage(cur, canvas);
+      const ctx = canvas.getContext('2d')!;
+      await renderPreviewImage(meshId, ctx, [0,0,48,48]);
+      renderVariant(variantId||null, ctx, [0,0,48,48]);
+    },
+    getKey() {
+      return (this.mesh||'') + (this.variant ? `:${this.variant}`: '')
     }
   },
   data() {
@@ -28,25 +34,28 @@ export default defineComponent({
     }
   },
   watch: {
-    mesh(_: string, cur: string) {
-      this.update(cur);
+    mesh(cur: string) {
+      this.update(cur, this.variant);
+    },
+    variant(cur: string) {
+      this.update(this.mesh, cur);
     }
   },
   mounted() {
-    this.update(this.mesh);
+    this.update(this.mesh, this.variant);
   },
   render() {
     const { activeModel } = injectActiveModel()!;
     return <canvas width="48" height="48" draggable="true" onDragstart={(evt) => {
       if (evt.dataTransfer) {
-        evt.dataTransfer.setData('model-key', this.mesh || '')
+        evt.dataTransfer.setData('model-key', this.getKey())
         evt.dataTransfer.setData('parent-key', this.$el?.parentElement?.dataset['slot'] || '')
         evt.dataTransfer.dropEffect = 'move';
       }
       this.startDrag();
     }}
-      class={{ 'mesh-preview': true, activeModel: this.mesh == activeModel.value, dragging: this.isDragging, inUse: this.inUse }}
+      class={{ 'mesh-preview': true, activeModel: this.getKey() == activeModel.value, dragging: this.isDragging, inUse: this.inUse }}
       onDragend={() => this.stopDrag()}
-      onClick={() => activeModel.value = this.mesh == activeModel.value ? null : this.mesh || null}></canvas>
+      onClick={() => activeModel.value = this.getKey() == activeModel.value ? null : this.getKey() || null}></canvas>
   }
 });
